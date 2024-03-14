@@ -1,0 +1,13 @@
+# VS Code
+.vscode
+
+# API key
+api_key.txt
+*_session_token.json
+
+# Python environment
+env
+__pycache__
+
+# Assets
+satellite

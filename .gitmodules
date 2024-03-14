@@ -1,0 +1,3 @@
+[submodule "src/imreg_dft"]
+	path = src/imreg_dft
+	url = git@github.com:aviborg/imreg_dft.git
