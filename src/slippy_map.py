@@ -1,7 +1,9 @@
 import sys
 import math
+import numpy as np
 
-def deg2num(lat_lon_deg, zoom=18):
+def deg2num(lat_lon_deg: np.array, zoom=18):
+  
   lat_rad = math.radians(lat_lon_deg[0])
   n = 1 << int(zoom)
   xtile = (lat_lon_deg[1] + 180.0) / 360.0 * n
@@ -16,4 +18,10 @@ def num2deg(x_y_tile, zoom=18):
   return lat_deg, lon_deg
 
 if __name__ == '__main__':
-    print(globals()[sys.argv[1]]((float(sys.argv[2]), float(sys.argv[3]))))
+  bb = np.array(((49.58107321890151, 15.939925928019788),
+    (49.580829484421415, 15.943419078099874),
+    (49.57941785825294, 15.943641732159657),
+    (49.57977443302853, 15.939673044838734)))
+  bb = np.array((49.57977443302853, 15.939673044838734))
+  print(deg2num(bb))
+  #  print(globals()[sys.argv[1]]((float(sys.argv[2]), float(sys.argv[3]))))

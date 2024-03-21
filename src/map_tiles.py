@@ -71,12 +71,13 @@ class map_tiles:
     if self.session_token is None:
       self.get_session_token()
     for idx, (lat, lon) in enumerate(bbox):
+      x, y = slippy_map.deg2num((lat, lon), zoom)
       if idx == 0:
-        xmin, ymin = slippy_map.deg2num(lat, lon, zoom)
-        (xmax, ymax) = (xmin, ymin)
+        (xmin, ymin) = (x, y)
+        (xmax, ymax) = (x, y)
       else:
-        xmin, ymin = numpy.minimum((xmin, ymin), (slippy_map.deg2num(lat, lon, zoom)))
-        xmax, ymax = numpy.maximum((xmax, ymax), (slippy_map.deg2num(lat, lon, zoom)))
+        xmin, ymin = numpy.minimum((xmin, ymin), (x, y))
+        xmax, ymax = numpy.maximum((xmax, ymax), (x, y))
     x = range(int(xmin),  int(xmax) + 1)
     y = range(int(ymin),  int(ymax) + 1)
     tile_width = self.session_token["tileWidth"]
@@ -96,5 +97,6 @@ if __name__ == '__main__':
     (49.57941785825294, 15.943641732159657),
     (49.57977443302853, 15.939673044838734))
   image = map_tiles().get_map_image(bb, 18)
-  draw = ImageDraw.Draw(img)
+  draw = ImageDraw.Draw(image)
+  
   image.show()
