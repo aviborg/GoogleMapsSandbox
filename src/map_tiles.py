@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from multiprocessing import Pool
 import requests
 import json
 import time
@@ -17,6 +18,9 @@ class map_tiles:
     self.map_type="satellite"
     self.session_filepath = f"{self.map_type}_session_token.json"
     self.session_token = None
+    self.zoom = None
+    self.x = None
+    self.y = None
   
   def get_api_key(self):
     self.api_key = None
@@ -42,9 +46,11 @@ class map_tiles:
         self.session_token = json.loads(session_token_response.text)
     return self.session_token
 
-  def get_map_tile(self, x=6294, y=13288, z=15):
+  def get_map_tile(self, i):
+    xi = i % len(self.x)
+    yi = i // len(self.x)
     self.get_session_token()
-    image_path = Path(str(self.map_type), str(z), str(x), f"{y}.{self.imageFormat}")
+    image_path = Path(str(self.map_type), str(self.zoom), str(self.x[xi]), f"{self.y[yi]}.{self.imageFormat}")
     if Path.is_file(image_path):
       im = Image.open(image_path)
     else:
@@ -55,7 +61,7 @@ class map_tiles:
         Path.mkdir(image_path.parent, parents=True, exist_ok=True)
         with open(image_path, "wb") as image_file:
           image_file.write(map_tile_response.content)
-    return im
+    return im, i
 
   def get_viewport(self, north=49.58311641811828, south=49.57866438815705, east=15.942535400390625, west=15.937042236328125, zoom=20):
     self.get_session_token()
@@ -78,14 +84,19 @@ class map_tiles:
       else:
         xmin, ymin = numpy.minimum((xmin, ymin), (x, y))
         xmax, ymax = numpy.maximum((xmax, ymax), (x, y))
-    x = range(int(xmin),  int(xmax) + 1)
-    y = range(int(ymin),  int(ymax) + 1)
+    self.x = range(int(xmin),  int(xmax) + 1)
+    self.y = range(int(ymin),  int(ymax) + 1)
+    self.zoom = zoom
     tile_width = self.session_token["tileWidth"]
     tile_height = self.session_token["tileHeight"]
-    image = Image.new("RGB", (len(x) * tile_width, len(y) * tile_height))
-    for xi, xn in enumerate(x):
-      for yi, yn in enumerate(y):
-          image.paste(self.get_map_tile(xn, yn, zoom), (xi * tile_width, yi * tile_height))
+    image = Image.new("RGB", (len(self.x) * tile_width, len(self.y) * tile_height))
+    N = len(self.x) * len(self.y)
+    #with Pool(processes = N) as pool:
+    #  for im, i in pool.imap_unordered(self.get_map_tile, range(N)):
+    for i in range(N):
+      xi = i % len(self.x)
+      yi = i // len(self.x)
+      image.paste(self.get_map_tile(i)[0], (xi * tile_width, yi * tile_height))
     print(time.time() - timer)
     return image
 
