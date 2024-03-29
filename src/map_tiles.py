@@ -1,12 +1,11 @@
 import sys
 from pathlib import Path
-from multiprocessing import Pool
 import requests
 import json
 import time
 import io
 import numpy
-from PIL import Image, ImageDraw
+import cv2
 import slippy_map
 
 
@@ -52,12 +51,12 @@ class map_tiles:
     self.get_session_token()
     image_path = Path(str(self.map_type), str(self.zoom), str(self.x[xi]), f"{self.y[yi]}.{self.imageFormat}")
     if Path.is_file(image_path):
-      im = Image.open(image_path)
+      im = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
     else:
-      url = f"https://tile.googleapis.com/v1/2dtiles/{z}/{x}/{y}?session={self.session_token["session"]}&key={self.api_key}"
+      url = f"https://tile.googleapis.com/v1/2dtiles/{self.zoom}/{self.x[xi]}/{self.y[yi]}?session={self.session_token["session"]}&key={self.api_key}"
       map_tile_response = requests.get(url)
       if map_tile_response.ok:
-        im = Image.open(io.BytesIO(map_tile_response.content))
+        im = cv2.imdecode(numpy.frombuffer(map_tile_response.content, numpy.uint8), cv2.IMREAD_UNCHANGED)
         Path.mkdir(image_path.parent, parents=True, exist_ok=True)
         with open(image_path, "wb") as image_file:
           image_file.write(map_tile_response.content)
@@ -71,9 +70,8 @@ class map_tiles:
     if viewport_response.ok:
       self.viewport = json.loads(viewport_response.text)
     return self.viewport
-
-  def get_map_image(self, bbox, zoom=18) -> Image:
-    timer = time.time()
+  
+  def set_bbox(self, bbox, zoom=18):
     if self.session_token is None:
       self.get_session_token()
     for idx, (lat, lon) in enumerate(bbox):
@@ -87,16 +85,19 @@ class map_tiles:
     self.x = range(int(xmin),  int(xmax) + 1)
     self.y = range(int(ymin),  int(ymax) + 1)
     self.zoom = zoom
+
+  def get_map_image(self) -> numpy.array:
+    timer = time.time()
     tile_width = self.session_token["tileWidth"]
     tile_height = self.session_token["tileHeight"]
-    image = Image.new("RGB", (len(self.x) * tile_width, len(self.y) * tile_height))
+    image = numpy.zeros((len(self.y) * tile_height, len(self.x) * tile_width, 3), numpy.uint8)
     N = len(self.x) * len(self.y)
     #with Pool(processes = N) as pool:
     #  for im, i in pool.imap_unordered(self.get_map_tile, range(N)):
     for i in range(N):
       xi = i % len(self.x)
       yi = i // len(self.x)
-      image.paste(self.get_map_tile(i)[0], (xi * tile_width, yi * tile_height))
+      image[(yi * tile_height):((yi + 1) * tile_height), (xi * tile_width):((xi + 1) * tile_width)] = self.get_map_tile(i)[0]
     print(time.time() - timer)
     return image
 
@@ -107,7 +108,10 @@ if __name__ == '__main__':
     (49.580829484421415, 15.943419078099874),
     (49.57941785825294, 15.943641732159657),
     (49.57977443302853, 15.939673044838734))
-  image = map_tiles().get_map_image(bb, 18)
-  draw = ImageDraw.Draw(image)
   
-  image.show()
+  mtiles = map_tiles()
+  mtiles.set_bbox(bb, 18)
+  image = mtiles.get_map_image()
+  cv2.imshow("Map tiles", image)
+  cv2.waitKey()
+  cv2.destroyAllWindows()
