@@ -83,7 +83,7 @@ class map_tiles:
   def get_viewport(self, north=49.58311641811828, south=49.57866438815705, east=15.942535400390625, west=15.937042236328125, zoom=20):
     self.get_session_token()
     self.viewport = None
-    url = f"https://tile.googleapis.com/tile/v1/viewport?session={self.session_token["session"]}&key={self.api_key}&zoom={zoom}&north={north}&south={south}&east={east}&west={west}"
+    url = f"https://tile.googleapis.com/tile/v1/viewport?session={self.session_token['session']}&key={self.api_key}&zoom={zoom}&north={north}&south={south}&east={east}&west={west}"
     viewport_response = requests.get(url)
     if viewport_response.ok:
       self.viewport = json.loads(viewport_response.text)
