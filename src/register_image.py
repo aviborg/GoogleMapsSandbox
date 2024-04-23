@@ -241,6 +241,6 @@ if __name__ == '__main__':
           [49.57977443302853, 15.939673044838734]])
 
   #bb = np.array([[-2,-1], [-2,-2], [-1,-2], [-1,-1]])  
-  img = cv2.imread('D:/gitprojekt/GoogleMapsSandbox/example/frame2rgb.png', cv2.IMREAD_UNCHANGED)
+  img = cv2.imread('example/frame2rgb.png', cv2.IMREAD_UNCHANGED)
   centerpoint = np.array([49.58024655, 15.94175443])
   register_image(img, bb)
