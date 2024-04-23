@@ -80,7 +80,8 @@ def register_image(sensor_image, bb):
   reference_image_fft = np.fft.fftshift(np.fft.fft2(reference_image)) 
   hpf = high_pass_filter(reference_image_fft.shape, 20)
   im0 = np.abs(reference_image_fft) * hpf
-  
+  print(time.time() - timer)
+  timer = time.time()
   
   sensor_image = filter_image(cv2.cvtColor(sensor_image, cv2.COLOR_BGR2GRAY), 0, filter_size)
   target_image = np.zeros(reference_image.shape, np.float64)
@@ -135,6 +136,7 @@ def register_image0(sensor_image, centerpoint):
   rescaled_bb[1,:] = centerpoint + cross_corners[1,:] * search_area / 2.0
   rescaled_bb[2,:] = centerpoint - cross_corners[0,:] * search_area / 2.0
   rescaled_bb[3,:] = centerpoint - cross_corners[1,:] * search_area / 2.0
+
   mtiles = map_tiles()
   mtiles.set_bbox(rescaled_bb, zoom)
   reference_image = filter_image(mtiles.get_map_image_gray(), laplace_size, filter_size)
