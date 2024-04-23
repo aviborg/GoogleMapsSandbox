@@ -2,14 +2,11 @@ from pathlib import Path
 import sys
 import os
 from map_tiles import map_tiles
-import matplotlib.pyplot as plt
 import slippy_map
 import time
 import cv2
 from scipy import signal
 import numpy as np
-path_root = Path(__file__).resolve().parents[0]
-sys.path.append(os.path.join(str(path_root), "imreg_dft", "src"))
 import imreg_dft as ir
 
 class image_data:
@@ -106,14 +103,14 @@ def register_image(sensor_image, bb):
   #cv2.imshow("Rotated scaled", np.uint8((target_image_rotated_scaled + reference_image) / 2))
 
   results, confidence = cv2.phaseCorrelate(reference_image, target_image_rotated_scaled)
-  #print(results)
+  print(results, confidence)
   translationMatrix = np.float64([[1,0,-results[0]],[0,1,-results[1]]])
   target_image_final = cv2.warpAffine(target_image_rotated_scaled, translationMatrix, (reference_image.shape[1], reference_image.shape[0]))
   print(time.time() - timer)
-  cv2.imshow("Final", np.uint8((target_image_final + reference_image) / 2))
+  #cv2.imshow("Final", np.uint8((target_image_final + reference_image) / 2))
 
-  cv2.waitKey()
-  cv2.destroyAllWindows()
+  #cv2.waitKey()
+  #cv2.destroyAllWindows()
   return np.uint8((target_image_final))
 
 '''
