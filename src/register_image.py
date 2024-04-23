@@ -5,9 +5,7 @@ from map_tiles import map_tiles
 import slippy_map
 import time
 import cv2
-from scipy import signal
 import numpy as np
-import imreg_dft as ir
 
 class image_data:
   def __init__(self, image, bbox):
