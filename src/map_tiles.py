@@ -57,7 +57,7 @@ class map_tiles:
     if Path.is_file(image_path):
       im = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
     else:
-      url = f"https://tile.googleapis.com/v1/2dtiles/{self.zoom}/{self.x[xi]}/{self.y[yi]}?session={self.session_token["session"]}&key={self.api_key}"
+      url = f"https://tile.googleapis.com/v1/2dtiles/{self.zoom}/{self.x[xi]}/{self.y[yi]}?session={self.session_token['session']}&key={self.api_key}"
       map_tile_response = requests.get(url)
       if map_tile_response.ok:
         im = cv2.imdecode(np.frombuffer(map_tile_response.content, np.uint8), cv2.IMREAD_UNCHANGED)
