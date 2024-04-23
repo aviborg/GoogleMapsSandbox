@@ -1,10 +1,11 @@
 import sys
 from pathlib import Path
+#from multiprocessing import Pool
 import requests
 import json
 import time
 import io
-import numpy
+import numpy as np
 import cv2
 import slippy_map
 
@@ -20,6 +21,9 @@ class map_tiles:
     self.zoom = None
     self.x = None
     self.y = None
+  
+  def get_xy(self):
+    return self.x, self.y
   
   def get_api_key(self):
     self.api_key = None
@@ -56,10 +60,24 @@ class map_tiles:
       url = f"https://tile.googleapis.com/v1/2dtiles/{self.zoom}/{self.x[xi]}/{self.y[yi]}?session={self.session_token["session"]}&key={self.api_key}"
       map_tile_response = requests.get(url)
       if map_tile_response.ok:
-        im = cv2.imdecode(numpy.frombuffer(map_tile_response.content, numpy.uint8), cv2.IMREAD_UNCHANGED)
+        im = cv2.imdecode(np.frombuffer(map_tile_response.content, np.uint8), cv2.IMREAD_UNCHANGED)
         Path.mkdir(image_path.parent, parents=True, exist_ok=True)
         with open(image_path, "wb") as image_file:
           image_file.write(map_tile_response.content)
+    return im, i
+  
+  def get_map_tile_gray(self, i):
+    xi = i % len(self.x)
+    yi = i // len(self.x)
+    self.get_session_token()
+    image_path = Path(str(self.map_type), 'gray', str(self.zoom), str(self.x[xi]), f"{self.y[yi]}.{self.imageFormat}")
+    if Path.is_file(image_path):
+      im = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
+    else:
+      im, i = self.get_map_tile(i)
+      im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+      Path.mkdir(image_path.parent, parents=True, exist_ok=True)
+      cv2.imwrite(str(image_path), im)
     return im, i
 
   def get_viewport(self, north=49.58311641811828, south=49.57866438815705, east=15.942535400390625, west=15.937042236328125, zoom=20):
@@ -74,40 +92,51 @@ class map_tiles:
   def set_bbox(self, bbox, zoom=18):
     if self.session_token is None:
       self.get_session_token()
-    for idx, (lat, lon) in enumerate(bbox):
-      x, y = slippy_map.deg2num((lat, lon), zoom)
+    xy = slippy_map.deg2num(bbox, zoom)
+    for idx in range(xy.shape[0]):
       if idx == 0:
-        (xmin, ymin) = (x, y)
-        (xmax, ymax) = (x, y)
+        (xmin, ymin) = xy[idx, :]
+        (xmax, ymax) = xy[idx, :]
       else:
-        xmin, ymin = numpy.minimum((xmin, ymin), (x, y))
-        xmax, ymax = numpy.maximum((xmax, ymax), (x, y))
-    self.x = range(int(xmin),  int(xmax) + 1)
-    self.y = range(int(ymin),  int(ymax) + 1)
+        xmin, ymin = np.minimum((xmin, ymin), xy[idx, :])
+        xmax, ymax = np.maximum((xmax, ymax), xy[idx, :])
+    self.x = np.arange(int(xmin),  int(xmax) + 1)
+    self.y = np.arange(int(ymin),  int(ymax) + 1)
     self.zoom = zoom
 
-  def get_map_image(self) -> numpy.array:
-    timer = time.time()
+  def get_map_image(self) -> np.array:
     tile_width = self.session_token["tileWidth"]
     tile_height = self.session_token["tileHeight"]
-    image = numpy.zeros((len(self.y) * tile_height, len(self.x) * tile_width, 3), numpy.uint8)
+    image = np.zeros((len(self.y) * tile_height, len(self.x) * tile_width, 3), np.uint8)
     N = len(self.x) * len(self.y)
-    #with Pool(processes = N) as pool:
+    #with Pool(processes = 1) as pool:
     #  for im, i in pool.imap_unordered(self.get_map_tile, range(N)):
     for i in range(N):
       xi = i % len(self.x)
       yi = i // len(self.x)
       image[(yi * tile_height):((yi + 1) * tile_height), (xi * tile_width):((xi + 1) * tile_width)] = self.get_map_tile(i)[0]
-    print(time.time() - timer)
+    return image
+  
+  def get_map_image_gray(self) -> np.array:
+    tile_width = self.session_token["tileWidth"]
+    tile_height = self.session_token["tileHeight"]
+    image = np.zeros((len(self.y) * tile_height, len(self.x) * tile_width), np.uint8)
+    N = len(self.x) * len(self.y)
+    #with Pool(processes = 1) as pool:
+    #  for im, i in pool.imap_unordered(self.get_map_tile, range(N)):
+    for i in range(N):
+      xi = i % len(self.x)
+      yi = i // len(self.x)
+      image[(yi * tile_height):((yi + 1) * tile_height), (xi * tile_width):((xi + 1) * tile_width)] = self.get_map_tile_gray(i)[0]
     return image
 
 
 
 if __name__ == '__main__':
-  bb = ((49.58107321890151, 15.939925928019788),
-    (49.580829484421415, 15.943419078099874),
-    (49.57941785825294, 15.943641732159657),
-    (49.57977443302853, 15.939673044838734))
+  bb = np.array([[49.58107321890151, 15.939925928019788],
+          [49.580829484421415, 15.943419078099874],
+          [49.57941785825294, 15.943641732159657],
+          [49.57977443302853, 15.939673044838734]])
   
   mtiles = map_tiles()
   mtiles.set_bbox(bb, 18)
